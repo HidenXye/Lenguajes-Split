@@ -703,48 +703,81 @@ Con un umbral de $|\Delta| > 0.5$, se identifican 4 variables críticas:
 % REDES BAYESIANAS
 % =============================================
 \newpage
-\section{Redes Bayesianas -- Algoritmo de Chow-Liu}
+\section{Redes Bayesianas -- Tres Enfoques DAG}
 
-El árbol de dependencias construido mediante Información Mutua y el algoritmo de Kruskal es, de hecho, el resultado del \textbf{algoritmo de Chow-Liu} para el aprendizaje de la estructura de una red Bayesiana. Chow-Liu (1968) demostró que la estructura de árbol que maximiza la verosimilitud de los datos es exactamente el Árbol de Expansión de Peso Máximo calculado sobre la matriz de Información Mutua. En otras palabras, el MST obtenido en las secciones anteriores es la \textbf{estructura óptima de red Bayesiana tipo árbol} para este dataset.
+Se implementaron y compararon tres enfoques para la construcción de Redes Bayesianas (Grafos Acíclicos Dirigidos, DAG) sobre el dataset de abandono universitario. Cada enfoque produce una estructura de dependencias diferente, y se evalúa su calidad mediante el criterio de información Bayesiana (BIC):
 
-\subsection{Construcción del DAG}
+\begin{equation}
+    \text{BIC} = -2 \cdot \log L + k \cdot \log(n)
+\end{equation}
+donde $\log L$ es la log-verosimilitud del modelo, $k$ el número de parámetros libres, y $n$ el número de observaciones. Un menor BIC indica un mejor equilibrio entre ajuste y complejidad.
 
-Para convertir el MST (grafo no dirigido) en una red Bayesiana (grafo dirigido acíclico, DAG), se selecciona el nodo \texttt{Target} como raíz y se orientan todas las aristas alejándose de él mediante un recorrido en anchura (BFS). El resultado es el siguiente DAG:
+\subsection{Enfoque 1: Chow-Liu}
+
+El algoritmo de Chow-Liu (1968) construye la red Bayesiana en dos pasos: (1) calcular la Información Mutua entre todos los pares de variables, y (2) encontrar el Árbol de Expansión de Peso Máximo (MST), que es exactamente el procedimiento realizado en las secciones anteriores. La estructura resultante es un árbol dirigido desde el nodo Target como raíz.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.85\textwidth]{red_bayesiana.png}
-    \caption{Red Bayesiana aprendida mediante Chow-Liu. Target como nodo raíz. Las aristas están dirigidas desde Target hacia las hojas.}
-    \label{fig:bayes}
+    \includegraphics[width=0.85\textwidth]{dag_chow_liu.png}
+    \caption{Red Bayesiana -- Chow-Liu (MST sobre MI). Target como raíz.}
 \end{figure}
 
-La estructura dirigida obtenida (usando el dataset original con 4,424 registros) es:
+\subsection{Enfoque 2: Naive Bayes}
+
+El modelo Naive Bayes asume independencia condicional entre todas las features dado el Target. Su estructura es la más simple posible: el Target apunta a cada una de las 9 variables predictoras, sin aristas entre features.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{dag_naive_bayes.png}
+    \caption{Red Bayesiana -- Naive Bayes. Target $\rightarrow$ features, sin aristas entre predictores.}
+\end{figure}
+
+\subsection{Enfoque 3: Hill Climbing}
+
+El algoritmo Hill Climbing realiza una búsqueda heurística en el espacio de DAGs, partiendo de un grafo vacío y añadiendo, eliminando o invirtiendo aristas para maximizar el score BIC. A diferencia de Chow-Liu (restringido a árbol) y Naive Bayes (restringido a estructura estrella), Hill Climbing puede descubrir cualquier estructura de grafo.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{dag_hill_climbing.png}
+    \caption{Red Bayesiana -- Hill Climbing. Estructura libre optimizada por BIC.}
+\end{figure}
+
+\subsection{Comparativa de los Tres Enfoques}
 
 \begin{table}[H]
     \centering
-    \begin{tabular}{lll}
+    \begin{tabular}{lcccc}
         \toprule
-        \textbf{Arco} & \textbf{Variable hija} & \textbf{Peso MI} \\
+        \textbf{Modelo} & \textbf{Aristas} & \textbf{BIC} & \textbf{Log-Lik} & \textbf{Parámetros} \\
         \midrule
-        Target $\rightarrow$ $x_7$ & Aprobados 2do semestre & 0.3355 \\
-        Target $\rightarrow$ $x_3$ & Pagos al día & 0.1325 \\
-        Target $\rightarrow$ $x_4$ & Becado & 0.0709 \\
-        Target $\rightarrow$ $x_2$ & Edad & 0.0709 \\
-        $x_7$ $\rightarrow$ $x_5$ & Aprobados 1er semestre & 0.7843 \\
-        $x_7$ $\rightarrow$ $x_8$ & Nota 2do semestre & 0.3398 \\
-        $x_8$ $\rightarrow$ $x_6$ & Nota 1er semestre & 0.4284 \\
-        $x_6$ $\rightarrow$ $x_1$ & Nota de admisión & 0.0329 \\
-        $x_2$ $\rightarrow$ $x_9$ & Estado civil & 0.1790 \\
+        Chow-Liu & 9 & 63,310.67 & -31,631.86 & 47 \\
+        Naive Bayes & 9 & 69,667.01 & -34,809.86 & 47 \\
+        Hill Climbing & 23 & 68,056.57 & -33,565.87 & 737 \\
+        \midrule
+        \rowcolor{blue!15}
+        \textbf{Mejor (Chow-Liu)} & 9 & \textbf{63,310.67} & -31,631.86 & 47 \\
         \bottomrule
     \end{tabular}
-    \caption{Estructura del DAG aprendido (Chow-Liu sobre dataset original).}
+    \caption{Comparativa de los tres enfoques de Redes Bayesianas. Menor BIC = mejor modelo.}
 \end{table}
 
-\subsection{Tablas de Probabilidad Condicional (CPTs)}
+\subsection{Análisis de Resultados}
 
-Para los nodos conectados directamente al Target, se calculan las distribuciones de probabilidad condicional. Estas CPTs permiten realizar inferencia en la red.
+Los tres enfoques revelan fortalezas y limitaciones del aprendizaje estructural:
 
-\subsubsection{CPT: $P(x_7 \mid Target)$}
+\begin{itemize}
+    \item \textbf{Chow-Liu es el mejor modelo} según el criterio BIC (63,310.67). Con solo 9 aristas y 47 parámetros, captura las dependencias esenciales entre variables sin sobreajustar. La restricción de estructura de árbol resulta ser una ventaja: evita la inclusión de aristas espurias que inflan la complejidad sin mejorar el ajuste.
+
+    \item \textbf{Naive Bayes es el peor modelo} (BIC = 69,667.01). Aunque tiene el mismo número de parámetros que Chow-Liu, su suposición de independencia condicional entre features es demasiado restrictiva. La realidad es que existen dependencias significativas entre variables como $x_5$ (1er semestre) y $x_7$ (2do semestre), que Naive Bayes ignora por completo.
+
+    \item \textbf{Hill Climbing sobreajusta} (BIC = 68,056.57). Con 23 aristas y 737 parámetros, descubre muchas más relaciones, pero la penalización por complejidad del BIC castiga este exceso. El resultado es un modelo peor que Chow-Liu a pesar de ser mucho más complejo. Esto ilustra el principio de parsimonia: más aristas no implican necesariamente un mejor modelo.
+
+    \item \textbf{La penalización por complejidad es crucial}: Chow-Liu y Naive Bayes tienen la misma cantidad de aristas (9), pero Chow-Liu distribuye sus 47 parámetros de manera más efectiva al capturar dependencias entre features. Hill Climbing, con 737 parámetros, distribuye la información en demasiadas aristas, muchas de ellas probablemente espurias.
+\end{itemize}
+
+\subsection{Tablas de Probabilidad Condicional (Chow-Liu)}
+
+Para el modelo ganador (Chow-Liu), se presentan las CPTs de los nodos conectados directamente al Target:
 
 \begin{table}[H]
     \centering
@@ -757,12 +790,10 @@ Para los nodos conectados directamente al Target, se calculan las distribuciones
         Graduate (2) & 0.1159 & 0.5672 & 0.3169 \\
         \bottomrule
     \end{tabular}
-    \caption{Probabilidad condicional de aprobados en 2do semestre dado el Target.}
+    \caption{CPT: $P(x_7 \mid Target)$ -- Aprobados 2do semestre.}
 \end{table}
 
-Interpretación: Si un estudiante abandona (Dropout), hay un $82.2\%$ de probabilidad de que tenga bajo rendimiento ($x_7 = 0$) en el segundo semestre. Si se gradúa, solo un $11.6\%$ tiene bajo rendimiento.
-
-\subsubsection{CPT: $P(x_3 \mid Target)$}
+Interpretación: Si un estudiante abandona, hay un $82.2\%$ de probabilidad de bajo rendimiento en 2do semestre. Si se gradúa, solo el $11.6\%$.
 
 \begin{table}[H]
     \centering
@@ -775,14 +806,10 @@ Interpretación: Si un estudiante abandona (Dropout), hay un $82.2\%$ de probabi
         Graduate (2) & 0.0131 & 0.9869 \\
         \bottomrule
     \end{tabular}
-    \caption{Probabilidad condicional de pagos al día dado el Target.}
+    \caption{CPT: $P(x_3 \mid Target)$ -- Pagos al día.}
 \end{table}
 
-Interpretación: Los estudiantes que abandonan tienen un $32.2\%$ de probabilidad de no tener los pagos al día, frente a solo $1.3\%$ de los graduados.
-
 \subsection{Ejemplo de Inferencia}
-
-Utilizando las CPTs y la estructura del DAG, es posible realizar inferencia probabilística. A continuación se presenta un ejemplo de inferencia directa desde los datos:
 
 \textbf{Pregunta:} ¿Cuál es la probabilidad de abandono para un estudiante con baja nota de admisión ($x_1 = 0$) y que no tiene los pagos al día ($x_3 = 0$)?
 
@@ -792,15 +819,18 @@ Utilizando las CPTs y la estructura del DAG, es posible realizar inferencia prob
     P(Target = Graduate \mid x_1 = 0, x_3 = 0) &= 0.0220 \quad (2.2\%)
 \end{align*}
 
-Este resultado muestra que la combinación de baja nota de admisión y falta de pago es un predictor extremadamente fuerte de abandono universitario: más del $92\%$ de los estudiantes con este perfil terminan abandonando.
+La combinación de baja nota de admisión y falta de pago predice abandono con más del $92\%$ de probabilidad.
 
-\subsection{Conclusiones de la Red Bayesiana}
+\subsection{Conclusiones de las Redes Bayesianas}
 
 \begin{itemize}
-    \item El algoritmo de Chow-Liu proporciona una estructura de red Bayesiana que es \textbf{exactamente el MST} calculado en las secciones anteriores, validando la coherencia entre ambos enfoques.
-    \item La orientación desde Target como raíz revela una \textbf{jerarquía natural}: el Target influye directamente sobre variables financieras ($x_3$, $x_4$) y de rendimiento ($x_7$), que a su vez influyen sobre otras variables académicas en cascada.
-    \item Las CPTs permiten \textbf{cuantificar el riesgo} de abandono para perfiles específicos de estudiantes, lo cual tiene aplicaciones prácticas en sistemas de alerta temprana.
-    \item La red Bayesiana obtenida es un modelo \textbf{explicable e interpretable}, donde cada arco tiene un significado causal plausible en el contexto educativo.
+    \item El algoritmo de \textbf{Chow-Liu} produce el mejor DAG según BIC, validando que la estructura de árbol aprendida desde la matriz de Información Mutua es óptima para este dataset.
+
+    \item La comparación de tres enfoques revela un \textbf{principio fundamental}: restricciones estructurales adecuadas (árbol) producen mejores modelos que la libertad total (Hill Climbing) cuando los datos son limitados. La penalización por complejidad del BIC previene el sobreajuste.
+
+    \item Las CPTs del modelo Chow-Liu permiten \textbf{cuantificar el riesgo} de abandono para perfiles específicos, con aplicaciones directas en sistemas de alerta temprana universitaria.
+
+    \item La red Bayesiana obtenida es un modelo \textbf{explicable e interpretable} con solo 9 aristas dirigidas, donde cada arco representa una dependencia probabilística con sentido en el contexto educativo.
 \end{itemize}
 
 % =============================================
