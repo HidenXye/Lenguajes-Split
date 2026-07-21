@@ -26,14 +26,8 @@ Predict Students' Dropout and Academic Success (Realinho et al., 2021)
 | Archivo | Descripcion |
 |---------|-------------|
 | `resolucion_dropout.py` | Script completo del analisis |
-## Informe LaTeX (dividido por limite de Overleaf)
-
-| Archivo | Secciones | Lineas |
-|---------|-----------|--------|
-| `informe_parte1.tex` | Caratula, Introduccion, Dataset A | 338 |
-| `informe_parte2.tex` | Dataset B, Comparativa, rVP | 411 |
-| `informe_parte3.tex` | Redes Bayesianas, Anexo | 186 |
-| `informe_dropout.tex` | Documento completo unificado | ~800 |
+| `informe_dropout.tex` | Informe LaTeX completo |
+| `Calculos_Dropout.xlsx` | Calculos paso a paso (entropia, MI, MST, CPTs) |
 | `data.csv` | Dataset original |
 | `arbol_*.png` | Visualizaciones de los arboles MST |
 | `red_bayesiana.png` | Red Bayesiana (Chow-Liu) |
