@@ -402,8 +402,9 @@ plt.figure(figsize=(14, 10))
 pos = nx.spring_layout(dag, seed=42, k=2.5, iterations=200)
 nx.draw_networkx_nodes(dag, pos, node_size=2800, node_color='#FFB347', edgecolors='black', linewidths=2)
 nx.draw_networkx_labels(dag, pos, font_size=10, font_weight='bold')
-nx.draw_networkx_edges(dag, pos, width=2.5, edge_color='#555555', arrows=True, arrowsize=25,
-                       connectionstyle='arc3,rad=0.1')
+nx.draw_networkx_edges(dag, pos, width=2.5, edge_color='#555555',
+                       arrows=True, arrowsize=30, arrowstyle='-|>',
+                       node_size=2800)
 labels = {(u, v): f'{data["weight"]:.4f}' for u, v, data in dag.edges(data=True)}
 nx.draw_networkx_edge_labels(dag, pos, edge_labels=labels, font_size=8, font_color='red')
 plt.title('Red Bayesiana - Chow-Liu\nStudent Dropout (Target como raiz)', fontsize=16, fontweight='bold', pad=20)
